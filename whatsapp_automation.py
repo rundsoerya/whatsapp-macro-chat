@@ -33,6 +33,7 @@ def wait_and_click(driver, wait, xpath, timeout=20):
 
 
 def send_whatsapp_message(contact_or_group_name, messages, delay_seconds=1, is_group=False):
+    driver = None
     try:
         # Set up Chrome options
         options = webdriver.ChromeOptions()
@@ -64,6 +65,8 @@ def send_whatsapp_message(contact_or_group_name, messages, delay_seconds=1, is_g
         contact_xpath = f'//span[@title="{contact_or_group_name}"]'
         if not wait_and_click(driver, wait, contact_xpath):
             print(f"Could not find or click on {contact_or_group_name}")
+            if driver:
+                driver.quit()
             return
 
         time.sleep(2)
@@ -74,20 +77,36 @@ def send_whatsapp_message(contact_or_group_name, messages, delay_seconds=1, is_g
         
         # Send each message with delay
         for i, message in enumerate(messages, 1):
-            message_box.click()
-            message_box.send_keys(message)
-            message_box.send_keys(Keys.ENTER)
-            print(f'Message {i}/{len(messages)} sent to {contact_or_group_name}!')
-            
-            if i < len(messages):  # Don't wait after the last message
-                time.sleep(delay_seconds)
+            try:
+                message_box.click()
+                message_box.clear()  # Clear any existing text
+                message_box.send_keys(message)
+                time.sleep(0.5)  # Small delay before pressing enter
+                message_box.send_keys(Keys.ENTER)
+                print(f'Message {i}/{len(messages)} sent to {contact_or_group_name}!')
+                
+                # Add a small delay after sending each message
+                time.sleep(1)
+                
+                if i < len(messages):  # Don't wait for the additional delay after the last message
+                    time.sleep(delay_seconds)
+            except Exception as e:
+                print(f"Error sending message {i}: {str(e)}")
+                continue
+        
+        # Final delay to ensure last message is sent
+        time.sleep(2)
+        print("\nAll messages sent successfully! Browser will remain open.")
+        print("You can continue using WhatsApp Web or close the browser manually.")
         
     except TimeoutException:
         print("Error: Element not found within the specified time.")
+        if driver:
+            driver.quit()
     except Exception as e:
         print(f"An error occurred: {str(e)}")
-    finally:
-        driver.quit()
+        if driver:
+            driver.quit()
 
 
 if __name__ == '__main__':
